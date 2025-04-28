@@ -1,0 +1,77 @@
+
+# Définition des services (conteneurs)
+services:
+
+  # Service de la Base de Données (PostgreSQL)
+  db:
+    image: postgres:14-alpine # Utiliser une image PostgreSQL officielle légère
+    container_name: bibliotheque_db # Nom facile à identifier pour le conteneur
+    environment:
+      # Variables d'environnement pour configurer PostgreSQL
+      # IMPORTANT: Utiliser des mots de passe plus sécurisés en production !
+      POSTGRES_USER: user_bibliotheque
+      POSTGRES_PASSWORD: password_secret
+      POSTGRES_DB: bibliotheque_db
+    volumes:
+      # Monter un volume nommé pour rendre les données de la BDD persistantes
+      # Les données seront stockées dans 'postgres_data' sur la machine hôte (géré par Docker)
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      # Mapper le port PostgreSQL du conteneur au port de l'hôte (optionnel, utile pour déboguer avec un client externe)
+      - "5432:5432" # Format: HOST:CONTAINER
+    networks:
+      # Connecter ce service au réseau défini plus bas
+      - bibliotheque_net
+    restart: unless-stopped # Redémarrer le conteneur sauf s'il a été arrêté manuellement
+
+  # Service Backend (Application Flask)
+  backend:
+    build: ./backend # Construire l'image à partir du Dockerfile dans le dossier ./backend
+    container_name: bibliotheque_backend
+    depends_on:
+      - db # Indiquer que le backend dépend de la base de données (attend que 'db' démarre)
+    ports:
+      # Mapper le port 5000 du conteneur au port 5000 de l'hôte
+      - "5000:5000"
+    volumes:
+      # Monter le code source du backend dans le conteneur
+      # Permet les modifications en direct sans reconstruire l'image (utile en développement)
+      # Format: HOST_PATH:CONTAINER_PATH
+      - ./backend:/app
+    environment:
+      # Passer les variables d'environnement nécessaires à l'application Flask
+      # Doivent correspondre aux variables définies dans le service 'db'
+      POSTGRES_USER: user_bibliotheque
+      POSTGRES_PASSWORD: password_secret
+      POSTGRES_DB: bibliotheque_db
+      POSTGRES_HOST: db # Le nom du service 'db' est utilisé comme nom d'hôte ici !
+      POSTGRES_PORT: 5432
+      FLASK_DEBUG: "1" # Activer le mode debug de Flask via variable d'env
+    networks:
+      - bibliotheque_net
+    restart: unless-stopped
+
+  # Service Frontend (Nginx servant les fichiers HTML/JS)
+  frontend:
+    build: ./frontend # Construire l'image à partir du Dockerfile dans le dossier ./frontend
+    container_name: bibliotheque_frontend
+    ports:
+      # Mapper le port 80 du conteneur Nginx au port 8080 de l'hôte
+      # On utilise 8080 pour éviter les conflits potentiels avec le port 80 déjà utilisé sur l'hôte
+      - "8080:80"
+    networks:
+      - bibliotheque_net
+    restart: unless-stopped
+    # Note: Le frontend (dans le navigateur de l'hôte) appelle le backend via http://localhost:5000
+    # car le port 5000 du backend est mappé sur l'hôte.
+
+# Définition des volumes nommés
+volumes:
+  postgres_data: # Le nom correspond à celui utilisé dans le service 'db'
+    driver: local # Utiliser le driver de volume local par défaut
+
+# Définition des réseaux personnalisés
+networks:
+  bibliotheque_net: # Nom du réseau
+    driver: bridge # Utiliser le driver réseau bridge par défaut
+
