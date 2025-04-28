@@ -1,101 +1,121 @@
 # backend/app.py
-# Importe les modules nécessaires
-import os # Module pour interagir avec le système d'exploitation (pour les chemins de fichiers)
-from flask import Flask, jsonify, request, send_from_directory # Ajout de send_from_directory
+import os
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy # Importer SQLAlchemy
 
-# Initialise l'application Flask
-# static_folder pointe vers le dossier où se trouvent les fichiers statiques (frontend)
-# Il est relatif au dossier où CE script (app.py) est exécuté.
-# '../frontend' signifie "remonte d'un niveau (sortir de backend/) puis va dans frontend/"
+# --- Configuration ---
+# Détermine le chemin absolu du dossier où se trouve ce script
+basedir = os.path.abspath(os.path.dirname(__file__))
+
 app = Flask(__name__, static_folder='../frontend', static_url_path='/')
-# Active CORS pour les routes API (toujours une bonne pratique)
-# On restreint CORS aux routes commençant par /api/ pour plus de sécurité
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-# --- Simulation de Base de Données ---
-# Dans un vrai projet, ceci serait remplacé par une connexion à une base de données
-# (PostgreSQL, MySQL, MongoDB...) en utilisant un ORM comme SQLAlchemy ou un driver direct.
-# On utilise une simple liste de dictionnaires pour stocker les livres en mémoire.
-books_db = [
-    {"id": 1, "title": "Le Seigneur des Anneaux", "author": "J.R.R. Tolkien"},
-    {"id": 2, "title": "1984", "author": "George Orwell"},
-    {"id": 3, "title": "Dune", "author": "Frank Herbert"}
-]
-# Variable pour générer le prochain ID unique pour les nouveaux livres
-next_book_id = 4
-# --- Fin de la Simulation de Base de Données ---
+# --- Configuration de la Base de Données ---
+# Définit l'URI de la base de données SQLite
+# 'sqlite:///' signifie que le fichier sera à la racine du projet.
+# os.path.join(basedir, 'library.db') crée un fichier library.db dans le dossier backend
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'library.db')
+# Désactive une fonctionnalité de SQLAlchemy qui n'est pas nécessaire et consomme des ressources
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialise l'extension SQLAlchemy avec l'application Flask
+db = SQLAlchemy(app)
+# --- Fin de la Configuration DB ---
+
+# --- Modèle de Base de Données ---
+# Définit la structure de la table 'book'
+class Book(db.Model):
+    id = db.Column(db.Integer, primary_key=True) # Clé primaire auto-incrémentée
+    title = db.Column(db.String(100), nullable=False) # Champ texte, ne peut pas être vide
+    author = db.Column(db.String(100), nullable=False) # Champ texte, ne peut pas être vide
+
+    # Méthode optionnelle pour convertir l'objet Book en dictionnaire (utile pour jsonify)
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'author': self.author
+        }
+# --- Fin du Modèle DB ---
+
+# --- Initialisation de la Base de Données ---
+# Cette fonction crée les tables si elles n'existent pas.
+# Il faut la lancer une fois manuellement ou via une commande spécifique.
+# Nous allons utiliser le contexte de l'application pour le faire.
+with app.app_context():
+    print("Vérification et création des tables de la base de données si nécessaire...")
+    db.create_all() # Crée les tables définies dans les modèles (ici, la table 'book')
+    print("Tables vérifiées/créées.")
+# --- Fin Initialisation DB ---
+
 
 # --- Définition des Routes ---
 
-# Route pour servir le fichier index.html du frontend à la racine '/'
-# Cette route doit être définie AVANT les routes API si elles ont des chemins similaires
+# Route pour servir le fichier index.html du frontend
 @app.route('/')
 def serve_index():
     """Sert le fichier index.html du dossier frontend."""
-    # send_from_directory cherche le fichier dans le static_folder défini lors de l'init de Flask
-    # Ici, il cherchera donc dans '../frontend'
     print("Requête reçue pour servir index.html")
-    # Vérifie si le static_folder est bien défini et existe
     if not app.static_folder or not os.path.isdir(app.static_folder):
          print(f"ERREUR: Le dossier static_folder '{app.static_folder}' n'est pas configuré ou n'existe pas.")
          return "Erreur de configuration serveur.", 500
-    # Vérifie si index.html existe dans le static_folder
     index_path = os.path.join(app.static_folder, 'index.html')
     if not os.path.isfile(index_path):
          print(f"ERREUR: Le fichier 'index.html' n'a pas été trouvé dans {app.static_folder}")
          return "Fichier index.html non trouvé.", 404
-
     try:
-        # Utilise static_folder défini dans Flask(__name__, static_folder=...)
         return send_from_directory(app.static_folder, 'index.html')
     except Exception as e:
         print(f"Erreur inattendue lors de la tentative de servir index.html: {e}")
-        # Retourne une erreur 500 (Internal Server Error) en cas de problème
         return "Erreur serveur interne.", 500
 
 
-# --- Routes API (préfixées par /api pour éviter les conflits) ---
+# --- Routes API Modifiées ---
 
-# Route pour obtenir la liste complète des livres (Méthode GET)
+# Route pour obtenir la liste complète des livres depuis la BDD
 @app.route('/api/books', methods=['GET'])
 def get_books():
-    """Retourne la liste de tous les livres au format JSON."""
+    """Retourne la liste de tous les livres depuis la base de données."""
     print("Requête GET reçue pour /api/books")
-    return jsonify(books_db)
+    try:
+        # Récupère tous les enregistrements de la table Book
+        all_books = Book.query.all()
+        # Convertit chaque objet Book en dictionnaire et crée une liste
+        result = [book.to_dict() for book in all_books]
+        return jsonify(result)
+    except Exception as e:
+        print(f"Erreur lors de la récupération des livres: {e}")
+        return jsonify({"error": "Erreur serveur lors de la récupération des livres"}), 500
 
-# Route pour ajouter un nouveau livre (Méthode POST)
+
+# Route pour ajouter un nouveau livre dans la BDD
 @app.route('/api/books', methods=['POST'])
 def add_book():
-    """Ajoute un nouveau livre à la 'base de données'."""
-    global next_book_id
+    """Ajoute un nouveau livre à la base de données."""
     print("Requête POST reçue pour /api/books")
 
-    # Vérifie si la requête contient du JSON et les champs nécessaires
     if not request.json or not 'title' in request.json or not 'author' in request.json:
-        # Retourne une erreur 400 (Bad Request) si les données sont invalides
         return jsonify({"error": "Les champs 'title' et 'author' sont requis."}), 400
 
-    # Crée le nouveau livre avec un ID unique
-    new_book = {
-        'id': next_book_id,
-        'title': request.json['title'],
-        'author': request.json['author']
-    }
-    # Ajoute le livre à notre "base de données" simulée
-    books_db.append(new_book)
-    # Incrémente l'ID pour le prochain ajout
-    next_book_id += 1
+    try:
+        # Crée une nouvelle instance du modèle Book avec les données reçues
+        new_book = Book(title=request.json['title'], author=request.json['author'])
+        # Ajoute la nouvelle instance à la session SQLAlchemy
+        db.session.add(new_book)
+        # Valide (commit) les changements dans la base de données
+        db.session.commit()
 
-    print(f"Livre ajouté : {new_book}") # Log
-    # Retourne le livre ajouté et un statut 201 (Created)
-    return jsonify(new_book), 201
+        print(f"Livre ajouté à la BDD : {new_book.to_dict()}")
+        # Retourne le livre ajouté (converti en dict) et un statut 201
+        return jsonify(new_book.to_dict()), 201
+    except Exception as e:
+        print(f"Erreur lors de l'ajout du livre: {e}")
+        db.session.rollback() # Annule la transaction en cas d'erreur
+        return jsonify({"error": "Erreur serveur lors de l'ajout du livre"}), 500
 
 # --- Démarrage du Serveur ---
-# Ce bloc s'exécute seulement si le script est lancé directement (pas importé)
 if __name__ == '__main__':
-    # Vérifie si le dossier frontend (static_folder) existe bien à l'endroit attendu
-    # Utilise app.static_folder qui a été configuré lors de l'initialisation de Flask
     if app.static_folder:
         abs_static_folder = os.path.abspath(app.static_folder)
         print(f"Vérification de l'existence du dossier frontend (static_folder) à: {abs_static_folder}")
@@ -107,13 +127,6 @@ if __name__ == '__main__':
     else:
         print("ERREUR: static_folder n'est pas configuré pour l'application Flask.")
 
-
     print("Démarrage du serveur Flask sur http://localhost:5000")
-    # host='0.0.0.0' rend le serveur accessible depuis d'autres machines/conteneurs sur le réseau
-    # port=5000 définit le port d'écoute
-    # debug=True active le rechargement automatique et des messages d'erreur détaillés (utile en dev)
     app.run(debug=True, host='0.0.0.0', port=5000)
 
-# Les lignes suivantes qui appartenaient à requirements.txt ont été supprimées de ce fichier.
-# Assurez-vous qu'elles sont bien dans un fichier nommé 'requirements.txt'
-# dans le même dossier 'backend'.
