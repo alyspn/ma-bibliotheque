@@ -4,18 +4,18 @@ name: CI/CD Pipeline - Application Bibliothèque
 
 on:
   push:
-    branches: [ main ] # Exécuter sur les push vers la branche main
+    branches: [ main ]
   pull_request:
-    branches: [ main ] # Exécuter sur les Pull Requests ciblant la branche main
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
+  # --- Job 1: Construire, Tester, Scanner, Pousser les images ---
   build-test-scan-push:
     runs-on: ubuntu-latest
-
     permissions:
       contents: read
-      packages: write
+      packages: write # Pour pousser vers GHCR
 
     steps:
       - name: Checkout code
@@ -39,8 +39,6 @@ jobs:
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-      # Tests optionnels ici
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -63,37 +61,34 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}/frontend
 
-      # --- Modification ici ---
       - name: Build and Push Backend Docker image
+        id: build_backend # Ajout d'un ID pour référencer l'étape
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           file: ./backend/Dockerfile
-          # Pousser seulement si l'exécution est sur la branche main
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: ${{ steps.meta_backend.outputs.tags }}
           labels: ${{ steps.meta_backend.outputs.labels }}
-          load: true
+          load: true # Nécessaire pour le scan Trivy
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # --- Modification ici ---
       - name: Build and Push Frontend Docker image
+        id: build_frontend # Ajout d'un ID
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
-          # Pousser seulement si l'exécution est sur la branche main
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: ${{ steps.meta_frontend.outputs.tags }}
           labels: ${{ steps.meta_frontend.outputs.labels }}
-          load: true
+          load: true # Nécessaire pour le scan Trivy
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Scan Backend image for vulnerabilities
-        # Condition pour s'assurer que l'image existe localement avant de scanner
-        if: always() # Toujours exécuter cette étape si les précédentes ont réussi ou ont été sautées
+        if: always() # S'exécute même si le push est skippé (PR)
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ steps.meta_backend.outputs.tags }}
@@ -104,8 +99,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Scan Frontend image for vulnerabilities
-        # Condition pour s'assurer que l'image existe localement avant de scanner
-        if: always() # Toujours exécuter cette étape si les précédentes ont réussi ou ont été sautées
+        if: always() # S'exécute même si le push est skippé (PR)
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ steps.meta_frontend.outputs.tags }}
@@ -114,3 +108,39 @@ jobs:
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
+
+  # --- Job 2: Déployer sur Kubernetes ---
+  deploy-k8s:
+    # Ne lancer ce job que si le job précédent a réussi
+    needs: build-test-scan-push
+    # Ne lancer ce job que sur un push vers la branche main (pas sur les PR)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      # Récupérer le code (nécessaire pour accéder aux manifestes)
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # --- Configuration de kubectl ---
+      # (Optionnel - Si tu déployais sur un vrai cluster cloud,
+      # tu ajouterais ici les étapes pour configurer l'accès:
+      # ex: actions/setup-gcloud, aws-actions/configure-aws-credentials, azure/login, etc.)
+      # - name: Set up Kubeconfig for Cloud Cluster
+      #   uses: <action-specifique-cloud>
+      #   with:
+      #     # ... configuration ...
+      #     credentials: ${{ secrets.KUBE_CONFIG_DATA }} # Exemple
+
+      # --- Étape de Déploiement (Simulée pour cluster local) ---
+      # Cette étape montre comment on appliquerait les manifestes.
+      # Elle échouerait si elle cible un cluster local non accessible.
+      - name: Deploy to Kubernetes (Apply manifests)
+        run: |
+          echo "Attempting to apply Kubernetes manifests..."
+          # Dans un vrai scénario avec un cluster accessible, cette commande fonctionnerait.
+          # Pour une démo, on peut juste afficher la commande ou utiliser --dry-run=client
+          # kubectl apply -f kubernetes/ --dry-run=client # Vérifie la syntaxe sans appliquer
+          kubectl apply -f kubernetes/
+          echo "kubectl apply command executed (may fail if cluster is not accessible)."
+
