@@ -55,16 +55,13 @@ Le fichier `.github/workflows/ci.yml` définit le pipeline d'intégration et de 
 graph LR
     A[Commit sur dev] --> B(Push dev vers GitHub);
     B --> C{Création Pull Request vers main};
-    C --> D[Job CI: build-test-scan-push<br>(sur PR)];
-    %% Correction: Enlever l'emoji de la flèche %%
+    C --> D[Job CI: build-test-scan-push (sur PR)]; %% Correction: <br> enlevé %%
     D -- Succès --> E{Merge PR dans main};
     E --> F[Push vers main];
-    F --> G[Job CI: build-test-scan-push<br>(sur main)];
-    G -- Succès --> H[Job CD: deploy-k8s<br>(sur main)];
-    %% Correction: Enlever l'emoji de la flèche %%
+    F --> G[Job CI: build-test-scan-push (sur main)]; %% Correction: <br> enlevé %%
+    G -- Succès --> H[Job CD: deploy-k8s (sur main)]; %% Correction: <br> enlevé %%
     D -- Échec --> I[Correction sur dev];
     I --> B;
-    %% Correction: Enlever l'emoji de la flèche %%
     G -- Échec --> J[Analyse Échec CI];
     H -- (Simulé) --> K[Déploiement K8s];
 
@@ -209,4 +206,4 @@ Configurer des notifications (Slack, email) pour les échecs de la CI/CD.
 Mettre en place un déploiement CD fonctionnel vers un cluster distant (cloud ou autre) en configurant l'authentification kubectl dans le workflow GitHub Actions.
 Implémenter des stratégies de déploiement plus avancées (Blue/Green, Canary) si nécessaire.
 Automatiser les rollbacks dans le pipeline CD en cas d'échec post-déploiement.
-Utiliser des tags d'image Docker plus spécifiques (ex: SHA du commit) dans Kubernetes au lieu de :latest ou `:
+Util
