@@ -1,6 +1,5 @@
-    # backend/requirements.txt
     Flask
     Flask-Cors
     Flask-SQLAlchemy
-    psycopg2-binary # Ajout du pilote PostgreSQL
+    psycopg2-binary
     

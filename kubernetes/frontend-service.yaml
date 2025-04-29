@@ -1,21 +1,16 @@
-# kubernetes/frontend-service.yaml
-# --- Service pour le Frontend Nginx ---
-# Expose le déploiement Frontend à l'extérieur du cluster
 apiVersion: v1
 kind: Service
 metadata:
   name: frontend-service
 spec:
   selector:
-    # Sélectionne les Pods avec le label 'app: frontend'
     app: frontend
   ports:
-    - name: http # Nom du port
+    - name: http
       protocol: TCP
-      port: 80 # Port sur lequel le service écoute (standard pour HTTP)
-      targetPort: 80 # Port sur lequel les Pods frontend (Nginx) écoutent
-      # nodePort: 30080 # Si type=NodePort, spécifie un port fixe (optionnel)
-  # Expose le service sur un port de chaque nœud du cluster
+      port: 80
+      targetPort: 80
+      
+  
   type: NodePort
-  # Alternative: LoadBalancer si ton cluster le supporte (fournisseur cloud)
-  # type: LoadBalancer
+

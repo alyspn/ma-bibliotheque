@@ -1,31 +1,27 @@
-# kubernetes/frontend-deployment.yaml
-# --- Déploiement pour le Frontend Nginx ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend-deployment
 spec:
-  replicas: 1 # Nombre d'instances du frontend
+  replicas: 1
   selector:
     matchLabels:
-      app: frontend # Sélecteur pour lier au Service frontend-service
+      app: frontend
   template:
     metadata:
       labels:
-        app: frontend # Label appliqué aux Pods frontend
+        app: frontend
     spec:
-      imagePullSecrets: # Section pour utiliser le secret d'accès à GHCR
-      - name: ghcr-secret # Nom du secret créé précédemment
+      imagePullSecrets:
+      - name: ghcr-secret
       containers:
       - name: frontend
-        # --- MODIFICATION ICI ---
-        # Utiliser le tag ':main' qui existe sur GHCR
+
         image: ghcr.io/alyspn/ma-bibliotheque/frontend:main
-        # --- FIN MODIFICATION ---
-        imagePullPolicy: Always # Toujours essayer de récupérer la dernière image :main
+        imagePullPolicy: Always
         ports:
-        - containerPort: 80 # Port exposé par Nginx dans le conteneur
-        # --- Liveness et Readiness Probes ---
+        - containerPort: 80
+
         livenessProbe: # Vérifie si le conteneur est "vivant"
           httpGet:
             # Vérifie si Nginx sert bien le fichier principal

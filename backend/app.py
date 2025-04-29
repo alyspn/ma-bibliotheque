@@ -7,15 +7,12 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import OperationalError
 
-# --- Configuration ---
 basedir = os.path.abspath(os.path.dirname(__file__))
 
-# Initialise l'application Flask SANS configuration static_folder
 app = Flask(__name__)
-# Appliquer CORS à toutes les routes (plus simple maintenant que le frontend est séparé)
+
 CORS(app)
 
-# --- Configuration de la Base de Données PostgreSQL (inchangée) ---
 DB_USER = os.environ.get('POSTGRES_USER', 'user_fallback')
 DB_PASSWORD = os.environ.get('POSTGRES_PASSWORD', 'password_fallback')
 DB_HOST = os.environ.get('POSTGRES_HOST', 'localhost')
@@ -29,9 +26,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
-# --- Fin de la Configuration DB ---
 
-# --- Modèle de Base de Données (inchangé) ---
 class Book(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
@@ -43,9 +38,9 @@ class Book(db.Model):
             'title': self.title,
             'author': self.author
         }
-# --- Fin du Modèle DB ---
 
-# --- Initialisation de la Base de Données (inchangée) ---
+
+
 def initialize_database(app_context):
     with app_context:
         max_retries = 5
@@ -64,16 +59,11 @@ def initialize_database(app_context):
         print("ERREUR: Impossible de se connecter à la base de données après plusieurs tentatives.")
 
 initialize_database(app.app_context())
-# --- Fin Initialisation DB ---
 
-
-# --- Définition des Routes API UNIQUEMENT ---
-
-# Route racine simple pour vérifier que l'API fonctionne
 @app.route('/')
 def home():
      """Route simple pour vérifier que le serveur API est en cours d'exécution."""
-     # Retourne juste un message simple ou un statut, pas une page HTML.
+    
      return jsonify({"status": "API Backend de la Bibliothèque en cours d'exécution"})
 
 
@@ -113,9 +103,9 @@ def add_book():
         db.session.rollback()
         return jsonify({"error": "Erreur serveur interne lors de l'ajout"}), 500
 
-# --- Démarrage du Serveur ---
+
 if __name__ == '__main__':
     print("Démarrage du serveur API Flask sur http://localhost:5000 (accessible via 0.0.0.0 dans le conteneur)")
-    # host='0.0.0.0' est essentiel pour l'accès depuis d'autres conteneurs/hôte
+
     app.run(debug=True, host='0.0.0.0', port=5000)
 

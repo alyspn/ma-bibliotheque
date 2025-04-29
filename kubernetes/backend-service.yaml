@@ -7,13 +7,13 @@ metadata:
   name: backend-service
 spec:
   selector:
-    # Sélectionne les Pods avec le label 'app: backend'
+
     app: backend
   ports:
-    - name: http # Nom du port (optionnel mais descriptif)
+    - name: http 
       protocol: TCP
-      port: 5000 # Port sur lequel le service écoute (à l'intérieur ou extérieur selon le type)
-      targetPort: 5000 # Port sur lequel les Pods backend (conteneurs) écoutent
+      port: 5000
+      targetPort: 5000
       # nodePort: 30005 # Si type=NodePort, spécifie un port fixe (optionnel, entre 30000-32767)
   # --- Type de Service ---
   # NodePort expose le service sur un port statique sur l'IP de chaque nœud du cluster.
