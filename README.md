@@ -56,13 +56,16 @@ graph LR
     A[Commit sur dev] --> B(Push dev vers GitHub);
     B --> C{Création Pull Request vers main};
     C --> D[Job CI: build-test-scan-push<br>(sur PR)];
-    D -- ✅ Succès --> E{Merge PR dans main};
+    %% Correction: Enlever l'emoji de la flèche %%
+    D -- Succès --> E{Merge PR dans main};
     E --> F[Push vers main];
     F --> G[Job CI: build-test-scan-push<br>(sur main)];
-    G -- ✅ Succès --> H[Job CD: deploy-k8s<br>(sur main)];
-    D -- ❌ Échec --> I[Correction sur dev];
+    G -- Succès --> H[Job CD: deploy-k8s<br>(sur main)];
+    %% Correction: Enlever l'emoji de la flèche %%
+    D -- Échec --> I[Correction sur dev];
     I --> B;
-    G -- ❌ Échec --> J[Analyse Échec CI];
+    %% Correction: Enlever l'emoji de la flèche %%
+    G -- Échec --> J[Analyse Échec CI];
     H -- (Simulé) --> K[Déploiement K8s];
 
     style D fill:#eee,stroke:#333,stroke-width:2px;
@@ -206,5 +209,4 @@ Configurer des notifications (Slack, email) pour les échecs de la CI/CD.
 Mettre en place un déploiement CD fonctionnel vers un cluster distant (cloud ou autre) en configurant l'authentification kubectl dans le workflow GitHub Actions.
 Implémenter des stratégies de déploiement plus avancées (Blue/Green, Canary) si nécessaire.
 Automatiser les rollbacks dans le pipeline CD en cas d'échec post-déploiement.
-Utiliser des tags d'image Docker plus spécifiques (ex: SHA du commit) dans Kubernetes au lieu de :latest ou :main pour un meilleur contrôle des versions déployées.
-Gérer les secrets Kubernetes de manière plus sécurisée (ex: via
+Utiliser des tags d'image Docker plus spécifiques (ex: SHA du commit) dans Kubernetes au lieu de :latest ou `:
