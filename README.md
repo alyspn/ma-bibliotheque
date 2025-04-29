@@ -153,27 +153,3 @@ Cette section décrit le déploiement manuel sur le cluster Kubernetes local fou
 ## Structure du Projet
 
 /ma-bibliotheque├── .github/│   └── workflows/│       └── ci.yml             # Workflow GitHub Actions CI/CD├── backend/│   ├── app.py               # Application Flask (API)│   ├── Dockerfile           # Instructions pour construire l'image backend│   ├── requirements.txt     # Dépendances Python│   └── .dockerignore        # Fichiers à ignorer par Docker lors du build backend├── frontend/│   ├── index.html           # Interface utilisateur HTML/JS│   ├── Dockerfile           # Instructions pour construire l'image frontend (Nginx)│   └── .dockerignore        # Fichiers à ignorer par Docker lors du build frontend├── kubernetes/│   ├── backend-deployment.yaml  # Déploiement K8s pour le backend│   ├── backend-service.yaml     # Service K8s pour le backend│   ├── frontend-deployment.yaml # Déploiement K8s pour le frontend│   ├── frontend-service.yaml    # Service K8s pour le frontend│   ├── postgres-deployment.yaml # Déploiement K8s pour Postgres│   ├── postgres-secret.yaml     # Secret K8s pour les identifiants Postgres (généré manuellement)│   ├── postgres-service.yaml    # Service K8s pour Postgres│   └── postgres-storage.yaml    # PersistentVolumeClaim K8s pour Postgres├── .dockerignore            # Fichiers à ignorer par Docker (racine, si nécessaire)├── docker-compose.yml       # Configuration pour lancer l'app localement avec Docker Compose└── README.md                # Ce fichier de documentation
-## Réponse aux Objectifs du Projet Final
-
-Ce projet répond aux exigences du guide comme suit :
-
-1.  **Culture DevOps :** Démontrée par l'utilisation de Git/GitHub/Branches/PR, la documentation (`README.md` incluant workflow et stratégie de branche), l'automatisation (CI/CD), et la standardisation des environnements (Docker).
-2.  **Conteneurisation :** Réalisée avec des `Dockerfile` optimisés (base légère, cache), gestion des secrets/env via K8s Secrets et variables d'environnement, persistance des données BDD (Volumes/PVC), et utilisation d'un registre (GHCR). Les healthchecks sont implémentés via les Probes K8s.
-3.  **Intégration Continue (CI) :** Mise en place avec GitHub Actions, incluant linting (Flake8), build des images, et scan de sécurité des images (Trivy). Déclenchée sur push/PR.
-4.  **Déploiement Continu (CD) :** Structurellement en place avec un job dédié dans GitHub Actions qui pousse les images vers GHCR. Le déploiement final sur K8s est simulé (étape `kubectl apply` présente mais échoue car cible locale). La stratégie Rolling Update est utilisée implicitement par K8s.
-5.  **Fonctionnement Local (Docker Compose) :** Assuré par `docker-compose.yml` qui orchestre backend, frontend et BDD avec persistance et réseau configurés.
-6.  **Fonctionnement Kubernetes :** Démontré par le déploiement réussi sur le cluster local de Docker Desktop en utilisant les manifestes YAML fournis, incluant gestion des secrets (BDD, GHCR), persistance (PVC), et probes. L'accès se fait via NodePort.
-7.  **Infrastructure as Code :** Non abordé (optionnel).
-
-## Améliorations Possibles
-
-* Ajouter des **tests unitaires et d'intégration** au backend et les exécuter dans la CI.
-* Ajouter un **scan de sécurité du code source** (ex: `bandit`) dans la CI.
-* Implémenter une ressource **Ingress** dans Kubernetes pour un accès externe plus propre (nécessite un Ingress Controller dans le cluster).
-* Définir les **requests et limits de ressources** (CPU/mémoire) dans les manifestes Kubernetes.
-* Configurer des **notifications** (Slack, email) pour les échecs de la CI/CD.
-* Mettre en place un **déploiement CD fonctionnel vers un cluster distant** (cloud ou autre) en configurant l'authentification `kubectl` dans le workflow GitHub Actions.
-* Implémenter des **stratégies de déploiement plus avancées** (Blue/Green, Canary) si nécessaire.
-* Automatiser les **rollbacks** dans le pipeline CD en cas d'échec post-déploiement.
-* Utiliser des **tags d'image Docker plus spécifiques** (ex: SHA du commit) dans Kubernetes au lieu de `:latest` ou `:main` pour un meilleur contrôle des versions déployées.
-* Gérer les **secrets Kubernetes** de manière plus sécurisée (ex: via Vault ou des solutions cloud natives).
