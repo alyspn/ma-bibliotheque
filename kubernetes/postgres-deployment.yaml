@@ -1,0 +1,49 @@
+# kubernetes/postgres-deployment.yaml
+# --- Déploiement pour PostgreSQL ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-deployment
+spec:
+  replicas: 1 # Une seule instance de la base de données
+  selector:
+    matchLabels:
+      app: postgres # Le sélecteur pour lier ce déploiement au Service postgres-service
+  template:
+    metadata:
+      labels:
+        app: postgres # Label appliqué aux Pods créés par ce déploiement
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:14-alpine # Image PostgreSQL à utiliser
+        ports:
+        - containerPort: 5432 # Port sur lequel le conteneur Postgres écoute
+        env:
+          # Récupérer les variables d'environnement depuis le Secret 'postgres-secret'
+          - name: POSTGRES_USER
+            valueFrom:
+              secretKeyRef:
+                name: postgres-secret # Nom du Secret défini dans postgres-secret.yaml
+                key: POSTGRES_USER   # Clé dans le Secret contenant le nom d'utilisateur
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: postgres-secret
+                key: POSTGRES_PASSWORD # Clé dans le Secret contenant le mot de passe
+          - name: POSTGRES_DB
+            valueFrom:
+              secretKeyRef:
+                name: postgres-secret
+                key: POSTGRES_DB      # Clé dans le Secret contenant le nom de la BDD
+        volumeMounts:
+          # Monter le volume persistant (défini plus bas via le PVC)
+          # dans le chemin où Postgres stocke ses données à l'intérieur du conteneur
+          - name: postgres-storage
+            mountPath: /var/lib/postgresql/data
+      volumes:
+        # Définir le volume à utiliser pour ce Pod, basé sur le PersistentVolumeClaim
+        - name: postgres-storage
+          persistentVolumeClaim:
+            # Doit correspondre au nom du PVC créé dans postgres-storage.yaml
+            claimName: postgres-pvc

@@ -1,0 +1,21 @@
+# kubernetes/backend-service.yaml
+# --- Service pour le Backend Flask ---
+# Expose le déploiement Backend pour qu'il soit accessible
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+spec:
+  selector:
+    # Sélectionne les Pods avec le label 'app: backend'
+    app: backend
+  ports:
+    - name: http # Nom du port (optionnel mais descriptif)
+      protocol: TCP
+      port: 5000 # Port sur lequel le service écoute (à l'intérieur ou extérieur selon le type)
+      targetPort: 5000 # Port sur lequel les Pods backend (conteneurs) écoutent
+      # nodePort: 30005 # Si type=NodePort, spécifie un port fixe (optionnel, entre 30000-32767)
+  # --- Type de Service ---
+  # NodePort expose le service sur un port statique sur l'IP de chaque nœud du cluster.
+  # Utile pour les tests locaux ou si tu n'as pas d'Ingress/LoadBalancer.
+  type: NodePort
