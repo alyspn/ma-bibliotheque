@@ -1,0 +1,18 @@
+# kubernetes/postgres-service.yaml
+# --- Service pour PostgreSQL ---
+# Expose le déploiement PostgreSQL à l'intérieur du cluster pour que le backend puisse s'y connecter
+apiVersion: v1
+kind: Service
+metadata:
+  # Nom du service. C'est ce nom que le backend utilisera comme hôte pour la BDD.
+  name: postgres-service
+spec:
+  selector:
+    # Sélectionne les Pods qui ont le label 'app: postgres' (ceux créés par postgres-deployment)
+    app: postgres
+  ports:
+    - protocol: TCP
+      port: 5432 # Port sur lequel le service écoute à l'intérieur du cluster
+      targetPort: 5432 # Port sur lequel les Pods Postgres (conteneurs) écoutent
+  # ClusterIP est le type par défaut. Le service n'est accessible que depuis l'intérieur du cluster.
+  type: ClusterIP
