@@ -1,17 +1,21 @@
 # .github/workflows/ci.yml
 
-name: CI Pipeline - Application Bibliothèque
+name: CI/CD Pipeline - Application Bibliothèque
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main ] # Exécuter sur les push vers la branche main
   pull_request:
-    branches: [ main ]
+    branches: [ main ] # Exécuter sur les Pull Requests ciblant la branche main
   workflow_dispatch:
 
 jobs:
-  build-and-test:
+  build-test-scan-push:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout code
@@ -40,50 +44,73 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata backend
+        id: meta_backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/backend
+
+      - name: Extract Docker metadata frontend
+        id: meta_frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/frontend
+
       # --- Modification ici ---
-      - name: Build and Load Backend Docker image
+      - name: Build and Push Backend Docker image
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           file: ./backend/Dockerfile
-          push: false
-          tags: my-bibliotheque-backend:ci
-          # Charger l'image dans le démon Docker local pour les étapes suivantes
+          # Pousser seulement si l'exécution est sur la branche main
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: ${{ steps.meta_backend.outputs.tags }}
+          labels: ${{ steps.meta_backend.outputs.labels }}
           load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       # --- Modification ici ---
-      - name: Build and Load Frontend Docker image
+      - name: Build and Push Frontend Docker image
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
-          push: false
-          tags: my-bibliotheque-frontend:ci
-          # Charger l'image dans le démon Docker local pour les étapes suivantes
+          # Pousser seulement si l'exécution est sur la branche main
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: ${{ steps.meta_frontend.outputs.tags }}
+          labels: ${{ steps.meta_frontend.outputs.labels }}
           load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Scan Backend image for vulnerabilities
+        # Condition pour s'assurer que l'image existe localement avant de scanner
+        if: always() # Toujours exécuter cette étape si les précédentes ont réussi ou ont été sautées
         uses: aquasecurity/trivy-action@master
         with:
-          # Référence à l'image chargée localement
-          image-ref: 'my-bibliotheque-backend:ci'
+          image-ref: ${{ steps.meta_backend.outputs.tags }}
           format: 'table'
-          exit-code: '0' # Ne pas faire échouer si vulnérabilités trouvées (pour l'instant)
+          exit-code: '0'
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
       - name: Scan Frontend image for vulnerabilities
+        # Condition pour s'assurer que l'image existe localement avant de scanner
+        if: always() # Toujours exécuter cette étape si les précédentes ont réussi ou ont été sautées
         uses: aquasecurity/trivy-action@master
         with:
-          # Référence à l'image chargée localement
-          image-ref: 'my-bibliotheque-frontend:ci'
+          image-ref: ${{ steps.meta_frontend.outputs.tags }}
           format: 'table'
-          exit-code: '0' # Ne pas faire échouer si vulnérabilités trouvées (pour l'instant)
+          exit-code: '0'
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
