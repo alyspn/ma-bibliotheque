@@ -1,4 +1,3 @@
-# kubernetes/backend-deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -17,11 +16,10 @@ spec:
       - name: ghcr-secret
       containers:
       - name: backend
-        # --- MODIFICATION ICI ---
-        # Utiliser le tag ':main' qui existe sur GHCR
+
         image: ghcr.io/alyspn/ma-bibliotheque/backend:main
-        # --- FIN MODIFICATION ---
-        imagePullPolicy: Always # Garder Always pour s'assurer qu'il récupère bien la version :main
+
+        imagePullPolicy: Always
         ports:
         - containerPort: 5000
         env:

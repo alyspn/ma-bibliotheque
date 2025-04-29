@@ -1,17 +1,12 @@
-# kubernetes/postgres-storage.yaml
-# --- PersistentVolumeClaim pour PostgreSQL ---
-# Demande du stockage persistant pour les données de la BDD
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: postgres-pvc # Nom du PVC, référencé par le déploiement Postgres
+  name: postgres-pvc
 spec:
-  # Mode d'accès: ReadWriteOnce signifie que le volume peut être monté
-  # en lecture/écriture par un seul nœud à la fois (standard pour les BDD)
+
   accessModes:
     - ReadWriteOnce
-  # Ressources demandées: taille du volume
+
   resources:
     requests:
-      storage: 1Gi # Demande 1 Gigaoctet de stockage (ajuste si nécessaire)
-  # storageClassName: standard # Décommente et ajuste si tu utilises un StorageClass spécifique sur ton cluster
+      storage: 1Gi 

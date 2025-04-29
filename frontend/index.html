@@ -18,11 +18,11 @@
             margin: auto;
             background: #fff;
             padding: 30px;
-            border-radius: 8px; /* Coins arrondis */
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1); /* Ombre légère */
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);/
         }
         h1, h2 {
-            color: #0056b3; /* Couleur bleue pour les titres */
+            color: #0056b3;
             border-bottom: 2px solid #eee;
             padding-bottom: 10px;
             margin-bottom: 20px;
@@ -30,7 +30,7 @@
         #books-list {
             margin-top: 20px;
             padding: 15px;
-            background-color: #e9ecef; /* Fond légèrement gris pour la liste */
+            background-color: #e9ecef;
             border-radius: 5px;
         }
         .book-item {
@@ -39,21 +39,21 @@
             padding: 10px 15px;
             margin-bottom: 10px;
             border-radius: 4px;
-            display: flex; /* Utilisation de flex pour aligner */
-            justify-content: space-between; /* Espace entre titre/auteur et bouton */
-            align-items: center; /* Alignement vertical */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .book-item span {
-            flex-grow: 1; /* Permet au texte de prendre l'espace disponible */
-            margin-right: 10px; /* Espace avant le bouton */
+            flex-grow: 1;
+            margin-right: 10px;
         }
         label {
-            display: block; /* Chaque label sur sa propre ligne */
+            display: block;
             margin-bottom: 5px;
             font-weight: bold;
         }
         input[type="text"] {
-            width: calc(100% - 22px); /* Prend toute la largeur moins le padding et bordure */
+            width: calc(100% - 22px);
             padding: 10px;
             margin-bottom: 15px;
             border: 1px solid #ccc;
@@ -61,20 +61,20 @@
         }
         button {
             display: inline-block;
-            background-color: #007bff; /* Bleu standard */
+            background-color: #007bff;
             color: white;
             padding: 10px 20px;
             border: none;
             border-radius: 4px;
-            cursor: pointer; /* Curseur main au survol */
+            cursor: pointer;
             font-size: 1em;
-            transition: background-color 0.2s ease; /* Transition douce au survol */
+            transition: background-color 0.2s ease;
         }
         button:hover {
-            background-color: #0056b3; /* Bleu plus foncé au survol */
+            background-color: #0056b3;
         }
         .error-message {
-            color: #dc3545; /* Rouge pour les erreurs */
+            color: #dc3545;
             background-color: #f8d7da;
             border: 1px solid #f5c6cb;
             padding: 10px;
@@ -117,12 +117,8 @@
     </div>
 
     <script>
-        // URL de l'API backend (à adapter si le backend tourne sur un autre port/hôte)
-        // Utilise 'http://localhost:5000' si tu lances le backend localement sans Docker au début
-        // Si tu utilises Docker Compose plus tard, ce sera le nom du service backend, ex: 'http://backend:5000'
         const apiUrl = 'http://localhost:5000/api/books';
 
-        // Références aux éléments du DOM
         const booksListDiv = document.getElementById('books-list');
         const addBookForm = document.getElementById('add-book-form');
         const titleInput = document.getElementById('title');
@@ -130,46 +126,34 @@
         const formErrorDiv = document.getElementById('form-error');
         const listErrorDiv = document.getElementById('list-error');
 
-        /**
-         * Affiche un message d'erreur dans une div spécifiée.
-         * @param {HTMLElement} errorElement - L'élément div où afficher l'erreur.
-         * @param {string} message - Le message d'erreur.
-         */
         function displayError(errorElement, message) {
             errorElement.textContent = message;
-            errorElement.style.display = 'block'; // Rendre visible
+            errorElement.style.display = 'block';
         }
 
-        /**
-         * Masque un message d'erreur.
-         * @param {HTMLElement} errorElement - L'élément div d'erreur.
-         */
         function clearError(errorElement) {
             errorElement.textContent = '';
-            errorElement.style.display = 'none'; // Masquer
+            errorElement.style.display = 'none';
         }
 
-        /**
-         * Récupère les livres depuis l'API et met à jour l'affichage.
-         */
         async function fetchAndDisplayBooks() {
-            clearError(listErrorDiv); // Masquer les erreurs précédentes
-            booksListDiv.innerHTML = '<p class="loading-message">Chargement des livres...</p>'; // Afficher message de chargement
+            clearError(listErrorDiv);
+            booksListDiv.innerHTML = '<p class="loading-message">Chargement des livres...</p>';
 
             try {
                 const response = await fetch(apiUrl);
                 if (!response.ok) {
-                    // Si la réponse n'est pas OK (ex: 404, 500), lever une erreur
+
                     throw new Error(`Erreur serveur: ${response.status} ${response.statusText}`);
                 }
-                const books = await response.json(); // Convertir la réponse en JSON
+                const books = await response.json();
 
-                booksListDiv.innerHTML = ''; // Vider la liste (ou le message de chargement)
+                booksListDiv.innerHTML = '';
 
                 if (books.length === 0) {
                     booksListDiv.innerHTML = '<p>Aucun livre trouvé dans la bibliothèque.</p>';
                 } else {
-                    // Créer et ajouter un élément pour chaque livre
+                    
                     books.forEach(book => {
                         const bookElement = document.createElement('div');
                         bookElement.classList.add('book-item');
@@ -182,42 +166,36 @@
             } catch (error) {
                 console.error('Erreur lors de la récupération des livres:', error);
                 displayError(listErrorDiv, `Impossible de charger les livres. Vérifiez que le serveur backend est lancé. Détail: ${error.message}`);
-                booksListDiv.innerHTML = ''; // Vider le message de chargement en cas d'erreur
+                booksListDiv.innerHTML = '';
             }
         }
 
-        /**
-         * Gère la soumission du formulaire d'ajout de livre.
-         * @param {Event} event - L'événement de soumission du formulaire.
-         */
         async function handleAddBookSubmit(event) {
-            event.preventDefault(); // Empêche le comportement par défaut du formulaire (rechargement)
-            clearError(formErrorDiv); // Masquer les erreurs précédentes du formulaire
+            event.preventDefault();
+            clearError(formErrorDiv);
 
-            const title = titleInput.value.trim(); // Récupérer et nettoyer les valeurs
+            const title = titleInput.value.trim();
             const author = authorInput.value.trim();
 
-            // Validation simple côté client
             if (!title || !author) {
                  displayError(formErrorDiv, "Le titre et l'auteur ne peuvent pas être vides.");
                  return;
             }
 
-            // Préparer les données à envoyer
             const newBookData = { title: title, author: author };
 
             try {
-                // Envoyer la requête POST à l'API
+  
                 const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json', // Indiquer qu'on envoie du JSON
+                        'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(newBookData), // Convertir l'objet JS en chaîne JSON
+                    body: JSON.stringify(newBookData),
                 });
 
                 if (!response.ok) {
-                    // Essayer de lire le message d'erreur du backend s'il existe
+                    
                     let errorMessage = `Erreur HTTP: ${response.status}`;
                     try {
                         const errorData = await response.json();
@@ -226,9 +204,9 @@
                     throw new Error(errorMessage);
                 }
 
-                // Si succès :
-                addBookForm.reset(); // Vider le formulaire
-                await fetchAndDisplayBooks(); // Recharger la liste des livres pour inclure le nouveau
+ 
+                addBookForm.reset();
+                await fetchAndDisplayBooks();
 
             } catch (error) {
                 console.error("Erreur lors de l'ajout du livre:", error);
@@ -236,11 +214,8 @@
             }
         }
 
-        // --- Initialisation ---
-        // Ajoute l'écouteur d'événement pour la soumission du formulaire
         addBookForm.addEventListener('submit', handleAddBookSubmit);
 
-        // Charge la liste initiale des livres au chargement de la page
         fetchAndDisplayBooks();
 
     </script>
