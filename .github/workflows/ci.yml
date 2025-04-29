@@ -1,109 +1,89 @@
 # .github/workflows/ci.yml
 
-# Nom du workflow qui apparaîtra dans l'onglet Actions de GitHub
 name: CI Pipeline - Application Bibliothèque
 
-# Déclencheurs : Quand exécuter ce workflow ?
 on:
   push:
-    branches: [ main ] # Exécuter sur les push vers la branche main
+    branches: [ main ]
   pull_request:
-    branches: [ main ] # Exécuter sur les Pull Requests ciblant la branche main
-  workflow_dispatch: # Permet de lancer manuellement le workflow depuis l'interface GitHub
+    branches: [ main ]
+  workflow_dispatch:
 
-# Jobs : Liste des tâches à exécuter
 jobs:
-  # Nom du job (tu peux en avoir plusieurs)
   build-and-test:
-    # Type de machine virtuelle sur laquelle exécuter le job
     runs-on: ubuntu-latest
 
-    # Étapes séquentielles du job
     steps:
-      # Étape 1: Récupérer le code du dépôt
       - name: Checkout code
-        uses: actions/checkout@v4 # Utilise une action pré-faite pour récupérer le code
+        uses: actions/checkout@v4
 
-      # Étape 2: Configurer Python
       - name: Set up Python 3.9
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9' # Spécifie la version de Python à utiliser
+          python-version: '3.9'
 
-      # Étape 3: Installer les dépendances Python (pour le backend)
       - name: Install backend dependencies
-        working-directory: ./backend # Se placer dans le dossier backend
+        working-directory: ./backend
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Étape 4: Linter le code Python avec Flake8 (Analyse statique)
-      # Il faut d'abord installer Flake8
       - name: Lint with Flake8
         working-directory: ./backend
         run: |
           pip install flake8
-          # Arrêter le build si des erreurs de style ou de syntaxe sont trouvées
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # Ignorer certaines erreurs (ex: ligne trop longue E501) et vérifier le reste
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-      # Étape 5: Exécuter les tests (Optionnel - à ajouter quand tu auras des tests)
-      # - name: Run tests
-      #   working-directory: ./backend
-      #   run: |
-      #     pip install pytest # ou un autre framework de test
-      #     pytest
+      # Tests optionnels ici
 
-      # Étape 6: Configurer Docker Buildx (pour de meilleures constructions Docker)
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Étape 7: Construire l'image Docker du Backend
-      # Vérifie que le Dockerfile backend est correct et que l'image se construit
-      - name: Build Backend Docker image
+      # --- Modification ici ---
+      - name: Build and Load Backend Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./backend # Chemin vers le dossier contenant le Dockerfile et le code
-          file: ./backend/Dockerfile # Chemin explicite vers le Dockerfile
-          push: false # Ne pas pousser l'image vers un registry pour l'instant
-          tags: my-bibliotheque-backend:ci # Donner un tag à l'image (optionnel pour build seul)
-          # Activer le cache pour accélérer les builds futurs
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: false
+          tags: my-bibliotheque-backend:ci
+          # Charger l'image dans le démon Docker local pour les étapes suivantes
+          load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Étape 8: Construire l'image Docker du Frontend
-      # Vérifie que le Dockerfile frontend est correct
-      - name: Build Frontend Docker image
+      # --- Modification ici ---
+      - name: Build and Load Frontend Docker image
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: false
           tags: my-bibliotheque-frontend:ci
+          # Charger l'image dans le démon Docker local pour les étapes suivantes
+          load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Étape 9: Scanner l'image Backend pour les vulnérabilités (Optionnel mais recommandé)
-      # Utilise Trivy, un scanner populaire
       - name: Scan Backend image for vulnerabilities
         uses: aquasecurity/trivy-action@master
         with:
+          # Référence à l'image chargée localement
           image-ref: 'my-bibliotheque-backend:ci'
           format: 'table'
-          exit-code: '0' # Ne pas faire échouer le workflow pour l'instant (exit-code: '1' pour échouer si vulnérabilités trouvées)
-          ignore-unfixed: true # Ignorer les vulnérabilités sans correctif disponible
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH' # Niveaux de sévérité à rapporter
-
-      # Étape 10: Scanner l'image Frontend pour les vulnérabilités (Optionnel)
-      - name: Scan Frontend image for vulnerabilities
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'my-bibliotheque-frontend:ci'
-          format: 'table'
-          exit-code: '0'
+          exit-code: '0' # Ne pas faire échouer si vulnérabilités trouvées (pour l'instant)
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
+      - name: Scan Frontend image for vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          # Référence à l'image chargée localement
+          image-ref: 'my-bibliotheque-frontend:ci'
+          format: 'table'
+          exit-code: '0' # Ne pas faire échouer si vulnérabilités trouvées (pour l'instant)
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
